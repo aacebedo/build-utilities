@@ -1,0 +1,31 @@
+sudo: required
+  
+language: python
+
+services:
+  - docker
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y --force-yes -q docker-engine
+  - docker build -t build environments/build
+  
+  - sudo mkdir -m 777 -p /build/xenial/amd64 /build/xenial/arm
+  
+script: 
+  - docker run -t --rm -v /build/xenial/amd64:/build build build --project aacebedo/build-utilities --arch mad64 --branch $TRAVIS_BRANCH --binname build-utilities --outputdir /build/install --language python
+  - docker run -t --rm -v /build/xenial/amd64:/build build package --project aacebedo/build-utilities --arch amd64 --branch $TRAVIS_BRANCH --binname build-utilities --outputdir /build/packages -i /build/install/
+  
+after_success:
+  - sudo chmod -R a+rwX /build
+  - mv /build/xenial/amd64/build-utlities.tar /build/build-utlities.amd64.$TRAVIS_BRANCH.tar
+  
+deploy:
+      
+  - provider: pypi
+    user: $PYPI_USER
+    password: $PYPI_PASSWORD
+    on:
+      tags: true
+      distributions: sdist bdist_wheel
+      repo: aacebedo/build-utilities

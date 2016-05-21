@@ -20,11 +20,8 @@
 Setup script for build-utilities
 """
 import sys
-import pathlib
 import argparse
-import platform
-import os
-import distutils
+import shutil
 try:
   from setuptools import setup, find_packages
 except Exception as e:
@@ -40,22 +37,16 @@ def process_setup():
   
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--prefix", type=str)
-    args, _ = parser.parse_known_args(sys.argv[1:])
-
-    prefix = sys.exec_prefix
-    if args.prefix != None:
-        prefix = args.prefix
 
     data_files = []
     
-    
-    res = distutils.spawn.find_executable("fpm")
+    res = shutil.which("fpm")
     if res is None:
       print("Installation is not possible (fpm not found). Please install fpm before build-utilities (gem install fpm).")
     else:
       setup(
           name="build-utilities",
-          version="0.1.0",
+          version="0.1.2",
           packages=find_packages("src"),
           package_dir ={'':'src'},
           data_files=data_files,

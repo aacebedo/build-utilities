@@ -23,12 +23,17 @@ import uuid
 import time
 import shutil
 from git import Repo
-from subprocess import Popen, PIPE
-from errno import ENAMETOOLONG
-from distutils.command.build import build
 from platform import python_version
-import distutils
-
+class TargetDesc :
+  distrib = ""
+  arch = ""
+  package_path = ""
+  
+  def __init__(self,distrib,arch,package_path):
+    self.distrib = distrib
+    self.arch = arch
+    self.package_path = package_path
+  
 class BuildUtilities:
   
   @staticmethod
@@ -61,6 +66,9 @@ class BuildUtilities:
                              help='binname', type=str)
     pkgParser.add_argument('--outputdir', '-o', help='Output directory',
                         required=True, type=str)
+    pkgParser.add_argument('--inputdir', '-i', help='Input directory',
+                        required=True, type=str)
+   
         
     deployDescParser = rootSubparsers.add_parser('deploydesc',
                                                  help='Create bintray deployement \
@@ -75,8 +83,17 @@ class BuildUtilities:
                         help='User', type=str)
     deployDescParser.add_argument('--description', '-dc', required=True,
                         help='Package description', type=str)
-    deployDescParser.add_argument('--outputdir', '-o',
-                                  help='Output directory',
+    deployDescParser.add_argument('--outputpath', '-o',
+                                  help='Output path',
+                                  required=True, type=str)
+    deployDescParser.add_argument('--packagepath', '-pa',
+                                  help='Package path',
+                                  required=True, type=str)
+    deployDescParser.add_argument('--distrib', '-d',
+                                  help='Distribution',
+                                  required=True, type=str)
+    deployDescParser.add_argument('--arch', '-a',
+                                  help='Architecture',
                                   required=True, type=str)
     deployDescParser.add_argument('--licenses', '-li', help='Software licences',
                         default=[], type=str, action='append')
@@ -88,7 +105,7 @@ class BuildUtilities:
   @staticmethod
   def generate_tmp_dir():
     tmp_dir_path = None
-    for x in range(0, 5):
+    for _ in range(0, 5):
       tmp_dir_path = os.path.join(os.path.abspath(os.sep), "tmp", str(uuid.uuid4()))
       if not os.path.exists(tmp_dir_path) :
         os.makedirs(tmp_dir_path, exist_ok=True)
@@ -100,32 +117,32 @@ class BuildUtilities:
     return tmp_dir_path
   
   @staticmethod
-  def generate_package(build_dir_path,
-                      package_type, package_name, version, arch, project):
-    res = distutils.spawn.find_executable("fpm")
+  def generate_package(outputdir_path,
+                      package_type, package_name, version, arch, project,path_to_package):
+    res = shutil.which("fpm")
     if res is None:
       raise Exception("Packaging is not possible (fpm not found). Please install fpm (gem install fpm).")
-    os.makedirs(os.path.join(build_dir_path,"packages"),exist_ok = True)
+    os.makedirs(os.path.join(outputdir_path,"packages"),exist_ok = True)
     process = subprocess.Popen(["fpm", "-t", package_type,
                                    "-n", package_name,
-                                   "-p", os.path.join(build_dir_path,"packages"),
+                                   "-p", outputdir_path,
                                    "-a", arch,
                                    "-f",
+                                   "--prefix",os.path.join("usr","local"),
                                    "--url","https://www.github.com/{}".format(project),
                                    "-v", version.replace("/", "_"),
-                                    "-C", os.path.join(build_dir_path, "packages"),
-                                   "-s", "dir", "."], shell=False)
+                                   "-s", "dir","."], shell=False, cwd=path_to_package)
     process.communicate()
     if process.returncode != 0:
       raise Exception("Error while cloning project")
   
   @staticmethod
-  def build_python(build_dir_path, project, branch, arch, bin_name):
-    if len(os.listdir(build_dir_path)) != 0:
-      raise Exception("Build error: {} is not empty.".format(build_dir_path))
+  def build_python(output_dir_path, project, branch, arch, bin_name):
+    if len(os.listdir(output_dir_path)) != 0:
+      raise Exception("Build error: {} is not empty.".format(output_dir_path))
     
-    src_dir_path = os.path.join(build_dir_path, "src")
-    install_dir_path = os.path.join(build_dir_path, "install")
+    src_dir_path = os.path.join(output_dir_path, "src")
+    install_dir_path = os.path.join(output_dir_path, "install")
     
     Repo.clone_from("https://github.com/{}".format(project), src_dir_path, branch=branch)
     os.makedirs(os.path.join(install_dir_path,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages"),exist_ok = True)
@@ -137,9 +154,9 @@ class BuildUtilities:
       raise Exception("Error while getting dependencies project")
   
   @staticmethod
-  def build_go(build_dir_path, project, branch, arch, bin_name):
-    if len(os.listdir(build_dir_path)) != 0:
-      raise Exception("Build error: {} is not empty.".format(build_dir_path))
+  def build_go(output_dir_path, project, branch, arch, bin_name):
+    if len(os.listdir(output_dir_path)) != 0:
+      raise Exception("Build error: {} is not empty.".format(output_dir_path))
     go_dir_path = os.path.join(BuildUtilities.generate_tmp_dir(), "go")
     print("Go path is : {}".format(go_dir_path))
     src_dir_path = os.path.join(go_dir_path, 'src', "github.com", project)
@@ -170,7 +187,7 @@ class BuildUtilities:
     process.communicate()
     if process.returncode != 0:
       raise Exception("Error while build the project")
-    bin_dir_path = os.path.join(build_dir_path, "packaging",
+    bin_dir_path = os.path.join(output_dir_path, "packaging",
                                     "usr", "local", "bin")
     os.makedirs(bin_dir_path)
     for dirName, _, fileList in os.walk(os.path.join(go_dir_path, "bin")):
@@ -181,17 +198,20 @@ class BuildUtilities:
     if os.path.exists(os.path.join(src_dir_path, "resources")) :
       for name in os.listdir(os.path.join(src_dir_path, "resources")):
         shutil.copytree(os.path.join(src_dir_path, "resources", name),
-                        os.path.join(build_dir_path, "packaging", name))
+                        os.path.join(output_dir_path, "packaging", name))
         
   @staticmethod
-  def generate_bintray_descriptor(build_dir,
+  def generate_bintray_descriptor(output_path,
                                 project,
                                 bin_name,
                                 user,
                                 desc,
                                 version,
+                                targets,
                                 licenses=[],
                                 labels=[]):
+    if os.path.exists(output_path) :
+      raise Exception("File {} exists".format(output_path))
     github_addr = "https://github.com/{}".format(project)
     descriptor = {"package":{
                              "name":bin_name,
@@ -218,35 +238,30 @@ class BuildUtilities:
                   "publish":True
                   }
     
-    for distrib in os.listdir(build_dir):
-      if os.path.isdir(os.path.join(build_dir,distrib)):
-        for arch in os.listdir(os.path.join(build_dir,distrib)):
-          if os.path.isdir(os.path.join(build_dir,distrib,arch)) :
-            descriptor["files"].append({
-                            "includePattern": os.path.join(build_dir,
-                                                           distrib,
-                                                           arch,
-                                                          "(.*\.deb)"),
-                            "uploadPattern": os.path.join(distrib,"$1"),
-                            "matrixParams":
-                              {
-                                "deb_distribution":distrib,
-                                "deb_component":"main",
-                                "deb_architecture":arch
-                               }
-                           })
-    file = open(os.path.join(build_dir, "bintray.desc"), 'w')
-    json.dump(descriptor, file, ensure_ascii=False, indent=2)
-    file.close()
+    for t in targets: 
+      if os.path.isfile(t.package_path):
+        descriptor["files"].append({
+                        "includePattern": t.package_path,
+                        "uploadPattern": os.path.join(t.distrib,"$1"),
+                        "matrixParams":
+                          {
+                            "deb_distribution":t.distrib,
+                            "deb_component":"main",
+                            "deb_architecture":t.arch
+                           }
+                       })
+    outfile = open(output_path, 'w')
+    json.dump(descriptor, outfile, ensure_ascii=False, indent=2)
+    outfile.close()
 
   @staticmethod
   def main():
     try:
       args = BuildUtilities.parse_arguments(sys.argv[1:])
       
-      if not os.path.exists(args.outputdir):
-        os.makedirs(args.outputdir, exist_ok=True)
       if args.function == "build" :
+        if not os.path.exists(args.outputdir):
+          os.makedirs(args.outputdir, exist_ok=True)
         if args.language == "python":
           BuildUtilities.build_python(args.outputdir,
             args.project, args.branch,
@@ -259,16 +274,20 @@ class BuildUtilities:
           raise Exception("Invalid language {}".format(args.language))
         
       if args.function == "package" :
+        if not os.path.exists(args.outputdir):
+          os.makedirs(args.outputdir, exist_ok=True)
         BuildUtilities.generate_package(args.outputdir, "deb", args.binname,
-                      args.branch, args.arch, args.project)
+                      args.branch, args.arch, args.project,args.inputdir)
         BuildUtilities.generate_package(args.outputdir, "tar", args.binname,
-                      args.branch, args.arch, args.project)
+                      args.branch, args.arch, args.project,args.inputdir)
       elif args.function == "deploydesc" :
-        BuildUtilities.generate_bintray_descriptor(args.outputdir,args.project,
+        t = TargetDesc(args.arch, args.distrib, args.packagepath)
+        BuildUtilities.generate_bintray_descriptor(args.outputpath,args.project,
                                   args.binname,
                                   args.user,
                                   args.description,
                                   args.branch,
+                                  [t],
                                   args.licenses,
                                   args.labels)
       sys.exit(0)
