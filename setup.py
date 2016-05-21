@@ -22,6 +22,9 @@ Setup script for build-utilities
 import sys
 import argparse
 import shutil
+import os
+from platform import python_version
+import site
 try:
   from setuptools import setup, find_packages
 except Exception as e:
@@ -37,8 +40,10 @@ def process_setup():
   
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--prefix", type=str)
-
-    data_files = []
+    
+    args = parser.parse_args(sys.argv[2:])
+    print(os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages"))
+    os.environ["PYTHONPATH"] = os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages")
     
     res = shutil.which("fpm")
     if res is None:
@@ -49,7 +54,6 @@ def process_setup():
           version="0.1.2",
           packages=find_packages("src"),
           package_dir ={'':'src'},
-          data_files=data_files,
           install_requires=['argcomplete>=1.0.0','argparse>=1.0.0', 'GitPython>=2.0', 'progressbar2>=2.0.0'],
           author="Alexandre ACEBEDO",
           author_email="Alexandre ACEBEDO",
