@@ -42,8 +42,8 @@ def process_setup():
     parser.add_argument("--prefix", type=str)
     
     args = parser.parse_args(sys.argv[2:])
-    print(os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages"))
-    os.environ["PYTHONPATH"] = os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages")
+    if args.prefix != None:
+      os.environ["PYTHONPATH"] = os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages")
     
     res = shutil.which("fpm")
     if res is None:

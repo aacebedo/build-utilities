@@ -13,21 +13,21 @@
 #    You should have received a copy of the GNU General Public License
 #    along with build-utilities.  If not, see <http://www.gnu.org/licenses/>.
 
-FROM alpine
+FROM gliderlabs/alpine
 
 MAINTAINER Alexandre ACEBEDO <alexandre@acebedo.fr>
 
-ARG BUILD_UTILITIES_VERSION
+ARG BRANCH
 
-LABEL Description="This image is used to build build-utilities" Vendor="Alexandre ACEBEDO" VERSION=$BUILD_UTILITIES_VERSION
+LABEL Description="This image is used to build build-utilities" Vendor="Alexandre ACEBEDO" VERSION=$BRANCH
 
 RUN apk update && apk upgrade
-RUN apk add git python3 bash ruby-dev gcc make ruby ruby-bundler \
- g++ libstdc++ libffi-dev ruby-rdoc tar xz-libs xz-dev ruby-irb ruby-rdoc zsh
+RUN apk add git python3 python3-dev bash ruby-dev gcc make ruby ruby-bundler \
+ g++ libstdc++ libffi-dev ruby-rdoc ruby-irb tar xz-libs xz-dev zsh
 RUN python3 -m ensurepip && pip3 install --upgrade pip setuptools
 
 RUN gem install fpm
-RUN git clone http://github.com/aacebedo/build-utilities -b $BUILD_UTILITIES_VERSION /src
+RUN git clone http://github.com/aacebedo/build-utilities -b $BRANCH /src
 
 VOLUME ["/build"]
 CMD ["zsh"]

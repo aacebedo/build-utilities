@@ -11,25 +11,27 @@ services:
 before_install:
   - sudo apt-get update
   - sudo apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y --force-yes -q docker-engine
-  - docker build -t build-image:alpine --build-arg BUILD_UTILITIES_VERSION=$TRAVIS_BRANCH -f environments/build/Dockerfile environments/build
-  - docker build -t build-image:xenial --build-arg BUILD_UTILITIES_VERSION=$TRAVIS_BRANCH -f environments/build/Dockerfile environments/build
-  - sudo mkdir -m 777 -p /build/alpine/amd64 /build/alpine/packages
+  - docker build -t build-image:alpine-amd64-$TRAVIS_BRANCH --build-arg BRANCH=$TRAVIS_BRANCH -f environments/build/Dockerfile.alpine environments/build
+  - sudo mkdir -m 777 -p /build/alpine/amd64/install /build/alpine/amd64/packages /build/alpine/amd64/install/lib/python3.5/site-packages/
   
 script: 
-  - docker run -t --rm -v /build:/build build-image:alpine zsh -c "cd /src && ./setup.py install --prefix=/build/alpine/install"
-  - docker run -t --rm -v /build:/build build-image:alpine sh -c "cd /build/alpine/amd64/install/ && fpm -t tar -n build-utilities -p /build/alpine/amd64/packages -a amd64 -f --prefix /usr/local --url https://github.com/aacebedo/build-utilities -v $TRAVIS_BRANCH -s dir ."
-  - docker build -t run-image:alpine --build-arg BUILD_UTILITIES_VERSION=$TRAVIS_BRANCH -f environments/run/Dockerfile environments/run
+  - docker run -t --rm -v /build:/build build-image:alpine-amd64-$TRAVIS_BRANCH zsh -c "cd /src && ./setup.py install --prefix=/build/alpine/amd64/install"
+  - docker run -t --rm -v /build:/build build-image:alpine-amd64-$TRAVIS_BRANCH zsh -c "cd /build/alpine/amd64/install/ && fpm -t tar -n build-utilities -p /build/alpine/amd64/packages -a amd64 -f --prefix /usr/local --url https://github.com/aacebedo/build-utilities -v $TRAVIS_BRANCH -s dir ."
+  - docker build -t aacebedo/build-utilities:alpine-amd64-$TRAVIS_BRANCH --build-arg BRANCH=$TRAVIS_BRANCH -f environments/run/Dockerfile.alpine environments/run
 
 after_success:
   - sudo chmod -R a+rwX /build
-  - mv /build/alpine/amd64/packages/build-utilities.tar /build/alpine/amd64/packages/build-utlities.alpine.amd64.$TRAVIS_BRANCH.tar
+  - mv /build/alpine/amd64/packages/build-utilities.tar /build/alpine/amd64/packages/build-utilities.alpine.amd64.$TRAVIS_BRANCH.tar
   
 deploy:
   - provider: releases
     skip_cleanup: true
-    api-key:
-       secure: $GITHUB_TOKEN
+    api-key: $GITHUB_TOKEN
     file:
       - /build/alpine/amd64/packages/build-utilities.alpine.amd64.$TRAVIS_BRANCH.tar
+    on:
+      tags: true
+  - provider: script
+    script: docker login -u $BINTRAY_USERNAME -p $BINTRAY_APIKEY -e $BINTRAY_EMAIL aacebedo-docker-build-utilities-docker.bintray.io && docker tag aacebedo/build-utilities:alpine-amd64-$TRAVIS_BRANCH aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:alpine-amd64-$TRAVIS_BRANCH && docker push aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:alpine-amd64-$TRAVIS_BRANCH
     on:
       tags: true
