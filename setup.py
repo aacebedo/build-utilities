@@ -45,25 +45,21 @@ def process_setup():
     if args.prefix != None:
       os.environ["PYTHONPATH"] = os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages")
     
-    res = shutil.which("fpm")
-    if res is None:
-      print("Installation is not possible (fpm not found). Please install fpm before build-utilities (gem install fpm).")
-    else:
-      setup(
-          name="build-utilities",
-          version="0.1.2",
-          packages=find_packages("src"),
-          package_dir ={'':'src'},
-          install_requires=['argcomplete>=1.0.0','argparse>=1.0.0', 'GitPython>=2.0', 'progressbar2>=2.0.0'],
-          author="Alexandre ACEBEDO",
-          author_email="Alexandre ACEBEDO",
-          description="Build utilities for python and go projects.",
-          license="LGPLv3",
-          keywords="build go python",
-          url="http://github.com/aacebedo/build-utilities",
-          entry_points={'console_scripts':
-                        ['build-utilities = buildutilities.__main__:BuildUtilities.main']}
-      )
+    setup(
+        name="build-utilities",
+        version="0.1.2",
+        packages=find_packages("src"),
+        package_dir ={'':'src'},
+        install_requires=['argcomplete>=1.0.0','argparse>=1.0.0', 'GitPython>=2.0', 'progressbar2>=2.0.0'],
+        author="Alexandre ACEBEDO",
+        author_email="Alexandre ACEBEDO",
+        description="Build utilities for python and go projects.",
+        license="LGPLv3",
+        keywords="build go python",
+        url="http://github.com/aacebedo/build-utilities",
+        entry_points={'console_scripts':
+                      ['build-utilities = buildutilities.__main__:BuildUtilities.main']}
+    )
       
 if __name__ == "__main__":
     process_setup()
