@@ -53,6 +53,8 @@ class BuildUtilities:
                              help="Github project", type=str)
     deployDescParser.add_argument('--branch', '-b', help='Git branch to build',
                              required=True, type=str)
+    deployDescParser.add_argument('--repository', '-r', help='Bintray repository',
+                             required=True, type=str)
     deployDescParser.add_argument('--binname', '-bn', required=True,
                              help='binname', type=str)
     deployDescParser.add_argument('--user', '-u', required=True,
@@ -154,6 +156,7 @@ class BuildUtilities:
   @staticmethod
   def generate_bintray_descriptor(output_path,
                                 project,
+                                repository,
                                 bin_name,
                                 user,
                                 desc,
@@ -166,7 +169,7 @@ class BuildUtilities:
     github_addr = "https://github.com/{}".format(project)
     descriptor = {"package":{
                              "name":bin_name,
-                             "repo":bin_name,
+                             "repo":repository,
                              "subject":user,
                              "desc":desc,
                              "website_url":github_addr,
@@ -192,7 +195,7 @@ class BuildUtilities:
     for p in packages: 
       if os.path.isfile(p[0]):
         descriptor["files"].append({
-                        "includePattern": p[0],
+                        "includePattern": os.path.join(os.path.dirname(p[0]),"({})".format(os.path.basename(p[0]))),
                         "uploadPattern": os.path.join(p[1],"$1"),
                         "matrixParams":
                           {
@@ -234,6 +237,7 @@ class BuildUtilities:
       elif args.function == "deploydesc" :
         
         BuildUtilities.generate_bintray_descriptor(args.outputpath,args.project,
+                                  args.repository,
                                   args.binname,
                                   args.user,
                                   args.description,
