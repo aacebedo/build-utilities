@@ -223,18 +223,7 @@ class BuildUtilities:
             args.arch, args.binname)
         else:
           raise Exception("Invalid language {}".format(args.language))
-        
-      if args.function == "package" :
-        if not os.path.exists(args.outputdir):
-          os.makedirs(args.outputdir, exist_ok=True)
-        BuildUtilities.generate_package(args.outputdir, "deb", args.binname,
-                      args.branch_or_revision, args.arch, args.project,args.inputdir)
-        BuildUtilities.generate_package(args.outputdir, "tar", args.binname,
-                      args.branch_or_revision, args.arch, args.project,args.inputdir)
-        BuildUtilities.generate_package(args.outputdir, "zip", args.binname,
-                      args.branch_or_revision, args.arch, args.project,args.inputdir)
       elif args.function == "deploydesc" :
-        
         BuildUtilities.generate_bintray_descriptor(args.outputpath,args.project,
                                   args.repository,
                                   args.binname,
