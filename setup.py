@@ -48,12 +48,12 @@ def process_setup():
       os.environ["PYTHONPATH"] = os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages")
     
     version = "0.0.0"
-    print(os.path.dirname(os.path.realpath(__file__)))
+
     if git.repo.fun.is_git_dir(os.path.join(os.path.dirname(os.path.realpath(__file__)),".git")):
       repo = Repo(os.path.dirname(os.path.realpath(__file__)))
       for tag in repo.tags:
         if tag.commit == repo.head.commit:
-          version = tag
+          version = tag.name
           break
     
     setup(
