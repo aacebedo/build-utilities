@@ -24,12 +24,12 @@ LABEL Description="This image is used to build build-utilities" Vendor="Alexandr
 RUN apk update && apk upgrade
 RUN apk add git python3 python3-dev bash ruby-dev gcc make ruby ruby-bundler \
  g++ libstdc++ libffi-dev ruby-rdoc ruby-irb tar xz-libs xz-dev zsh go zip
-RUN python3 -m ensurepip && pip3 install --upgrade pip setuptools gitpython
+RUN python3 -m ensurepip && pip3 install --upgrade pip setuptools
 
 RUN gem install fpm
 RUN git clone http://github.com/aacebedo/build-utilities /src
 RUN cd /src && git checkout $BRANCH_OR_REVISION
-RUN cd /src && ./setup.py install && rm -rf /src
+RUN cd /src && ./setup.py develop && ./setup.py install && rm -rf /src
 
 VOLUME ["/build"]
 ENTRYPOINT ["build-utilities"]
