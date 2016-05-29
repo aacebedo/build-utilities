@@ -24,20 +24,22 @@ import time
 import shutil
 from git import Repo
 from platform import python_version
+import pkg_resources
   
 class BuildUtilities:
   
   @staticmethod
   def parse_arguments(raw_args):
-    parser = argparse.ArgumentParser(prog="build",
-                                 description='Project Builder')
+    parser = argparse.ArgumentParser(prog="build-utilities",
+                                 description='Project Builder utilities')
+    parser.add_argument("--version","-v",help="Display version", action='version', version="{}".format(pkg_resources.require("build-utilities")[0].version))
     rootSubparsers = parser.add_subparsers(dest="function")
     buildParser = rootSubparsers.add_parser('build', help='Build packages')
     buildParser.add_argument('--project', '-p', required=True,
                              help="Github project", type=str)
     buildParser.add_argument('--arch', '-a', required=True,
                              help='Architecture to build', type=str)
-    buildParser.add_argument('--branch', '-b', help='Git branch to build',
+    buildParser.add_argument('--branch_or_revision', '-b', help='Git branch or revision to build',
                              default="master", type=str)
     buildParser.add_argument('--binname', '-bn', required=True,
                              help='binname', type=str)
@@ -51,7 +53,7 @@ class BuildUtilities:
                                                  descriptor')
     deployDescParser.add_argument('--project', '-p', required=True,
                              help="Github project", type=str)
-    deployDescParser.add_argument('--branch', '-b', help='Git branch to build',
+    deployDescParser.add_argument('--branch_or_revision', '-b', help='Git branch or revision to build',
                              required=True, type=str)
     deployDescParser.add_argument('--repository', '-r', help='Bintray repository',
                              required=True, type=str)
@@ -90,14 +92,15 @@ class BuildUtilities:
     return tmp_dir_path
   
   @staticmethod
-  def build_python(output_dir_path, project, branch, arch, bin_name):
+  def build_python(output_dir_path, project, branch_or_revision, arch, bin_name):
     if len(os.listdir(output_dir_path)) != 0:
       raise Exception("Build error: {} is not empty.".format(output_dir_path))
     
     src_dir_path = os.path.join(output_dir_path, "src")
     install_dir_path = os.path.join(output_dir_path, "install")
     
-    Repo.clone_from("https://github.com/{}".format(project), src_dir_path, branch=branch)
+    repo = Repo.clone_from("https://github.com/{}".format(project), src_dir_path)
+    repo.git.checkout(branch_or_revision)
     os.makedirs(os.path.join(install_dir_path,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages"),exist_ok = True)
     process = subprocess.Popen(["python3", "./setup.py", "install", "--prefix={}".format(install_dir_path)],
                      cwd=src_dir_path, shell=False,
@@ -107,20 +110,15 @@ class BuildUtilities:
       raise Exception("Error while getting dependencies project")
   
   @staticmethod
-  def build_go(output_dir_path, project, branch, arch, bin_name):
+  def build_go(output_dir_path, project, branch_or_revision, arch, bin_name):
     if len(os.listdir(output_dir_path)) != 0:
       raise Exception("Build error: {} is not empty.".format(output_dir_path))
     go_dir_path = os.path.join(BuildUtilities.generate_tmp_dir(), "go")
     print("Go path is : {}".format(go_dir_path))
     src_dir_path = os.path.join(go_dir_path, 'src', "github.com", project)
     
-    process = subprocess.Popen(["git", "clone", "-b", branch,
-                                  "https://github.com/{}".format(project),
-                                  src_dir_path], shell=False)
-    process.communicate()
-    if process.returncode != 0:
-      raise Exception("Error while cloning project")
-  
+    repo = Repo.clone_from("https://github.com/{}".format(project), src_dir_path)
+    repo.git.checkout(branch_or_revision)
     process = subprocess.Popen(["go", "get", "-d", "./..."],
                      cwd=src_dir_path, shell=False,
                      env=dict(os.environ,
@@ -212,17 +210,16 @@ class BuildUtilities:
   def main():
     try:
       args = BuildUtilities.parse_arguments(sys.argv[1:])
-      
       if args.function == "build" :
         if not os.path.exists(args.outputdir):
           os.makedirs(args.outputdir, exist_ok=True)
         if args.language == "python":
           BuildUtilities.build_python(args.outputdir,
-            args.project, args.branch,
+            args.project, args.branch_or_revision,
             args.arch, args.binname)
         elif args.language == "go":
           BuildUtilities.build_go(args.outputdir,
-            args.project, args.branch,
+            args.project, args.branch_or_revision,
             args.arch, args.binname)
         else:
           raise Exception("Invalid language {}".format(args.language))
@@ -231,9 +228,11 @@ class BuildUtilities:
         if not os.path.exists(args.outputdir):
           os.makedirs(args.outputdir, exist_ok=True)
         BuildUtilities.generate_package(args.outputdir, "deb", args.binname,
-                      args.branch, args.arch, args.project,args.inputdir)
+                      args.branch_or_revision, args.arch, args.project,args.inputdir)
         BuildUtilities.generate_package(args.outputdir, "tar", args.binname,
-                      args.branch, args.arch, args.project,args.inputdir)
+                      args.branch_or_revision, args.arch, args.project,args.inputdir)
+        BuildUtilities.generate_package(args.outputdir, "zip", args.binname,
+                      args.branch_or_revision, args.arch, args.project,args.inputdir)
       elif args.function == "deploydesc" :
         
         BuildUtilities.generate_bintray_descriptor(args.outputpath,args.project,
@@ -241,7 +240,7 @@ class BuildUtilities:
                                   args.binname,
                                   args.user,
                                   args.description,
-                                  args.branch,
+                                  args.branch_or_revision,
                                   args.package,
                                   args.licenses,
                                   args.labels)

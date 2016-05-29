@@ -25,6 +25,8 @@ import shutil
 import os
 from platform import python_version
 import site
+from git import Repo
+import git
 try:
   from setuptools import setup, find_packages
 except Exception as e:
@@ -45,9 +47,18 @@ def process_setup():
     if args.prefix != None:
       os.environ["PYTHONPATH"] = os.path.join(args.prefix,"lib","python{}.{}".format(python_version()[0],python_version()[2]),"site-packages")
     
+    version = "0.0.0"
+    print(os.path.dirname(os.path.realpath(__file__)))
+    if git.repo.fun.is_git_dir(os.path.join(os.path.dirname(os.path.realpath(__file__)),".git")):
+      repo = Repo(os.path.dirname(os.path.realpath(__file__)))
+      for tag in repo.tags:
+        if tag.commit == repo.head.commit:
+          version = tag
+          break
+    
     setup(
         name="build-utilities",
-        version="0.1.2",
+        version=version,
         packages=find_packages("src"),
         package_dir ={'':'src'},
         install_requires=['argcomplete>=1.0.0','argparse>=1.0.0', 'GitPython>=2.0', 'progressbar2>=2.0.0'],

@@ -17,16 +17,17 @@ FROM ubuntu:14.04
 
 MAINTAINER Alexandre ACEBEDO <alexandre@acebedo.fr>
 
-ARG BRANCH
+ARG BRANCH_OR_REVISION
 
-LABEL Description="This image is used to build build-utilities" Vendor="Alexandre ACEBEDO" VERSION=$BRANCH
+LABEL Description="This image is used to build build-utilities" Vendor="Alexandre ACEBEDO" VERSION=$BRANCH_OR_REVISION
 
 RUN apt update && apt-get upgrade -y --force-yes
 RUN apt install git python3 python3-dev bash ruby-dev gcc make ruby ruby-bundler \
  build-essential libffi-dev tar python3-pip python3-setuptools ruby-dev zsh -y --force-yes 
 
 RUN gem install fpm
-RUN git clone http://github.com/aacebedo/build-utilities -b $BRANCH /src
+RUN git clone http://github.com/aacebedo/build-utilities /src
+RUN cd /src && git checkout $BRANCH_OR_REVISION
 
 VOLUME ["/build"]
 CMD ["zsh"]

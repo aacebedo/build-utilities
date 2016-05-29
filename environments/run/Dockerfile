@@ -17,17 +17,18 @@ FROM gliderlabs/alpine
 
 MAINTAINER Alexandre ACEBEDO <alexandre@acebedo.fr>
 
-ARG BRANCH
+ARG BRANCH_OR_REVISION
 
-LABEL Description="This image is used to build build-utilities" Vendor="Alexandre ACEBEDO" VERSION=$BRANCH
+LABEL Description="This image is used to build build-utilities" Vendor="Alexandre ACEBEDO" VERSION=$BRANCH_OR_REVISION
 
 RUN apk update && apk upgrade
 RUN apk add git python3 python3-dev bash ruby-dev gcc make ruby ruby-bundler \
  g++ libstdc++ libffi-dev ruby-rdoc ruby-irb tar xz-libs xz-dev zsh go
-RUN python3 -m ensurepip && pip3 install --upgrade pip setuptools
+RUN python3 -m ensurepip && pip3 install --upgrade pip setuptools gitpython
 
 RUN gem install fpm
-RUN git clone http://github.com/aacebedo/build-utilities -b $BRANCH /src
+RUN git clone http://github.com/aacebedo/build-utilities /src
+RUN cd /src && git checkout $BRANCH_OR_REVISION
 RUN cd /src && ./setup.py install && rm -rf /src
 
 VOLUME ["/build"]
