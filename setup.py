@@ -53,7 +53,7 @@ def process_setup():
       repo = Repo(os.path.dirname(os.path.realpath(__file__)))
       for tag in repo.tags:
         if tag.commit == repo.head.commit:
-          version = tag
+          version = tag.name
           break
     
     setup(

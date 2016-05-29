@@ -23,7 +23,7 @@ LABEL Description="This image is used to build build-utilities" Vendor="Alexandr
 
 RUN apk update && apk upgrade
 RUN apk add git python3 python3-dev bash ruby-dev gcc make ruby ruby-bundler \
- g++ libstdc++ libffi-dev ruby-rdoc ruby-irb tar xz-libs xz-dev zsh go
+ g++ libstdc++ libffi-dev ruby-rdoc ruby-irb tar xz-libs xz-dev zsh go zip
 RUN python3 -m ensurepip && pip3 install --upgrade pip setuptools gitpython
 
 RUN gem install fpm

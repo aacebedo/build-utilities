@@ -5,6 +5,9 @@ language: python
 python:
  - 3.5
 
+install:
+  - pip install gitpython
+  
 services:
   - docker
 
@@ -15,13 +18,19 @@ before_install:
      -y --force-yes -q docker-engine
   - > 
      docker build -t build-image:alpine_${TRAVIS_BRANCH}_amd64 
-     --build-arg BRANCH=${TRAVIS_BRANCH} -f environments/build/Dockerfile.alpine environments/build
+     --build-arg BRANCH_OR_REVISION=${TRAVIS_BRANCH} -f environments/build/Dockerfile.alpine 
+     environments/build
   - >
      docker build -t build-image:trusty_${TRAVIS_BRANCH}_amd64 
-     --build-arg BRANCH=${TRAVIS_BRANCH} -f environments/build/Dockerfile.trusty environments/build
+     --build-arg BRANCH_OR_REVISION=${TRAVIS_BRANCH} -f environments/build/Dockerfile.trusty 
+     environments/build
   - > 
      docker build -t build-image:xenial_${TRAVIS_BRANCH}_amd64 
-     --build-arg BRANCH=${TRAVIS_BRANCH} -f environments/build/Dockerfile.xenial environments/build
+     --build-arg BRANCH_OR_REVISION=${TRAVIS_BRANCH} -f environments/build/Dockerfile.xenial 
+     environments/build
+  - > 
+     docker build -t aacebedo/build-utilities:${TRAVIS_BRANCH}_amd64 
+     --build-arg BRANCH_OR_REVISION=${TRAVIS_BRANCH} environments/run
  
 script:
   - > 
@@ -29,52 +38,42 @@ script:
      /build/alpine/amd64/install/lib/python3.5/site-packages/ 
   - > 
      docker run -t --rm -v /build:/build build-image:alpine_${TRAVIS_BRANCH}_amd64 zsh 
-     -c "cd /src && ./setup.py install --prefix=/build/alpine/amd64/install"
-  - >
-     docker run -t --rm -v /build:/build build-image:alpine_${TRAVIS_BRANCH}_amd64 zsh 
-     -c "cd /build/alpine/amd64/install/ && fpm -t tar -n build-utilities 
-     -p /build/alpine/amd64/packages -a amd64 -f --prefix /usr/local 
+     -c "cd /src && ./setup.py install --prefix=/build/alpine/amd64/install &&
+     cd /build/alpine/amd64/install/ && 
+     fpm -t tar -n build-utilities -p /build/alpine/amd64/packages -a amd64 -f --prefix /usr/local 
+     --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . && 
+     fpm -t zip -n build-utilities -p /build/alpine/amd64/packages -a amd64 -f --prefix /usr/local 
      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir ."
-  - > 
-     docker build -t aacebedo/build-utilities:${TRAVIS_BRANCH}_amd64 
-     --build-arg BRANCH=${TRAVIS_BRANCH} -f environments/run/Dockerfile environments/run
-  
   - > 
       sudo mkdir -m 777 -p /build/trusty/amd64/install /build/trusty/amd64/packages 
       /build/trusty/amd64/install/lib/python3.4/site-packages/
-  - >
-      docker run -t --rm -v /build:/build build-image:trusty_${TRAVIS_BRANCH}_amd64 zsh 
-      -c "cd /src && ./setup.py install --prefix=/build/trusty/amd64/install"
   - > 
       docker run -t --rm -v /build:/build build-image:trusty_${TRAVIS_BRANCH}_amd64 zsh 
-      -c "cd /build/trusty/amd64/install/ && fpm -t tar -n build-utilities 
-      -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
+      -c "cd /src && ./setup.py install --prefix=/build/trusty/amd64/install &&
+      cd /build/trusty/amd64/install/ && 
+      fpm -t tar -n build-utilities -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
+      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
+      fpm -t deb -n build-utilities -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
+      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
+      fpm -t zip -n build-utilities -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
       --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir ."
-  - > 
-      docker run -t --rm -v /build:/build build-image:trusty_${TRAVIS_BRANCH}_amd64 zsh 
-      -c "cd /build/trusty/amd64/install/ && fpm -t deb -n build-utilities 
-      -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
-      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir ." 
   - > 
       sudo mkdir -m 777 -p /build/xenial/amd64/install /build/xenial/amd64/packages 
       /build/xenial/amd64/install/lib/python3.5/site-packages/ 
   - > 
       docker run -t --rm -v /build:/build build-image:xenial_${TRAVIS_BRANCH}_amd64 zsh 
-      -c "cd /src && ./setup.py install --prefix=/build/xenial/amd64/install"
-  - > 
-      docker run -t --rm -v /build:/build build-image:xenial_${TRAVIS_BRANCH}_amd64 zsh 
-      -c "cd /build/xenial/amd64/install/ && fpm -t tar -n build-utilities 
-      -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
+      -c "cd /src && ./setup.py install --prefix=/build/xenial/amd64/install &&
+      cd /build/xenial/amd64/install/ && 
+      fpm -t tar -n build-utilities -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
+      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
+      fpm -t deb -n build-utilities -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
+      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
+      fpm -t zip -n build-utilities -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
       --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir ."
-  - > 
-      docker run -t --rm -v /build:/build build-image:xenial_${TRAVIS_BRANCH}_amd64 zsh 
-      -c "cd /build/xenial/amd64/install/ && fpm -t deb -n build-utilities 
-      -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
-      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir ."
-  
+
   - > 
      docker run -t --rm -v /build:/build aacebedo/build-utilities:${TRAVIS_BRANCH}_amd64 deploydesc 
-     --project aacebedo/build-utilities --branch ${TRAVIS_BRANCH} 
+     --project aacebedo/build-utilities --branch_or_revision ${TRAVIS_BRANCH} 
      --binname build-utilities --user aacebedo 
      --description "Build utilities for several type of projects" 
      --outputpath /build/bintray.desc 
@@ -85,16 +84,19 @@ script:
 
 after_success:
   - sudo chmod -R a+rwX /build
-  - cat /build/bintray.desc
   - > 
      mv /build/alpine/amd64/packages/build-utilities.tar 
-     /build/alpine/amd64/packages/build-utilities_alpine_${TRAVIS_BRANCH}_amd64.tar
-  - > 
+     /build/alpine/amd64/packages/build-utilities_alpine_${TRAVIS_BRANCH}_amd64.tar && 
+     mv /build/alpine/amd64/packages/build-utilities.zip 
+     /build/alpine/amd64/packages/build-utilities_alpine_${TRAVIS_BRANCH}_amd64.zip && 
      mv /build/trusty/amd64/packages/build-utilities.tar 
-     /build/trusty/amd64/packages/build-utilities_trusty_${TRAVIS_BRANCH}_amd64.tar
-  - > 
-      mv /build/xenial/amd64/packages/build-utilities.tar 
-      /build/xenial/amd64/packages/build-utilities_xenial_${TRAVIS_BRANCH}_amd64.tar
+     /build/trusty/amd64/packages/build-utilities_trusty_${TRAVIS_BRANCH}_amd64.tar &&
+     mv /build/trusty/amd64/packages/build-utilities.zip 
+     /build/trusty/amd64/packages/build-utilities_trusty_${TRAVIS_BRANCH}_amd64.zip &&
+     mv /build/xenial/amd64/packages/build-utilities.tar
+     /build/xenial/amd64/packages/build-utilities_xenial_${TRAVIS_BRANCH}_amd64.tar &&
+     mv /build/xenial/amd64/packages/build-utilities.zip
+     /build/xenial/amd64/packages/build-utilities_xenial_${TRAVIS_BRANCH}_amd64.zip
   
 deploy:
   - provider: bintray
@@ -109,12 +111,20 @@ deploy:
     api-key: $GITHUB_TOKEN
     file:
       - /build/alpine/amd64/packages/build-utilities_alpine_${TRAVIS_BRANCH}_amd64.tar
+      - /build/alpine/amd64/packages/build-utilities_alpine_${TRAVIS_BRANCH}_amd64.zip
       - /build/trusty/amd64/packages/build-utilities_trusty_${TRAVIS_BRANCH}_amd64.tar
+      - /build/trusty/amd64/packages/build-utilities_trusty_${TRAVIS_BRANCH}_amd64.zip
       - /build/xenial/amd64/packages/build-utilities_xenial_${TRAVIS_BRANCH}_amd64.tar
+      - /build/xenial/amd64/packages/build-utilities_xenial_${TRAVIS_BRANCH}_amd64.zip
     on:
       tags: true
   - provider: script
-    script: docker login -u ${BINTRAY_USERNAME} -p ${BINTRAY_APIKEY} -e $BINTRAY_EMAIL aacebedo-docker-build-utilities-docker.bintray.io && docker tag aacebedo/build-utilities:${TRAVIS_BRANCH}_amd64 aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:${TRAVIS_BRANCH}_amd64 && docker push aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:${TRAVIS_BRANCH}_amd64
+    script: docker login -u ${BINTRAY_USERNAME} -p ${BINTRAY_APIKEY} -e $BINTRAY_EMAIL aacebedo-docker-build-utilities-docker.bintray.io && docker tag aacebedo/build-utilities:${TRAVIS_BRANCH}_amd64 aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:${TRAVIS_BRANCH}_amd64 && docker tag aacebedo/build-utilities:${TRAVIS_BRANCH}_amd64 aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:latest && docker push aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:latest && docker push aacebedo-docker-build-utilities-docker.bintray.io/build-utilities:${TRAVIS_BRANCH}_amd64 
+              
     on:
       tags: true
-
+  - provider: pypi
+    user: $PYPI_USER
+    password: $PYPI_PASSWORD
+    on:
+      tags: true
