@@ -54,7 +54,8 @@ script:
       fpm -t tar -n build-utilities -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
       --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
       fpm -t deb -n build-utilities -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
-      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
+      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} 
+      -d python3 -d python3 -d python3-yaml -d python3-progressbar -d python3-pip -s dir . &&
       fpm -t zip -n build-utilities -p /build/trusty/amd64/packages -a amd64 -f --prefix /usr/local 
       --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir ."
   - > 
@@ -67,7 +68,8 @@ script:
       fpm -t tar -n build-utilities -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
       --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
       fpm -t deb -n build-utilities -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
-      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir . &&
+      --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} 
+      -d python3 -d python3 -d python3-yaml -d python3-progressbar -d python3-pip -s dir . &&
       fpm -t zip -n build-utilities -p /build/xenial/amd64/packages -a amd64 -f --prefix /usr/local 
       --url https://github.com/aacebedo/build-utilities -v ${TRAVIS_BRANCH} -s dir ."
 

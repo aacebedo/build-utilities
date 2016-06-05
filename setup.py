@@ -20,11 +20,8 @@
 Setup script for build-utilities
 """
 import sys
-import argparse
-import shutil
 import os
 from platform import python_version
-import site
 try: 
   import versioneer
 except Exception as e:
@@ -34,9 +31,7 @@ try:
 except Exception as e:
   sys.exit("setuptools for python3 is missing")
 
-
 from setuptools.command.install import install
-
 
 class InstallCommand(install):
     user_options = install.user_options + [
@@ -71,7 +66,7 @@ def process_setup():
         cmdclass=cmds,
         packages=find_packages("src"),
         package_dir ={'':'src'},
-        install_requires=['argcomplete>=1.0.0','argparse>=1.0.0', 'GitPython>=2.0', 'progressbar2>=2.0.0'],
+        install_requires=['GitPython>=2.0', 'progressbar2>=2.0.0'],
         author="Alexandre ACEBEDO",
         author_email="Alexandre ACEBEDO",
         description="Build utilities for python and go projects.",
